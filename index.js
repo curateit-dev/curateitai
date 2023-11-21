@@ -127,7 +127,11 @@ async function saveGemHandler(conversation, ctx) {
   }
   console.log("sessionId in saveGemHandler : ", sessionId);
 
-  const link = ctx.session.urlToSave;
+  let link = ctx.session.urlToSave;
+
+  if (!link.startsWith("http://") && !link.startsWith("https://")) {
+    link = "https://" + link;
+  }
   let ogData = await fetchOpenGraphData(link);
   delete ctx.session.urlToSave;
   console.log("ogData : ", ogData);
@@ -212,7 +216,7 @@ CurateitAI - AI Productivity Assistance Bot
 👉Basic Commands👈
 
 /ask <YOUR URL>
-/save <YOUR GEM URL>
+/save <YOUR GEM URL (http or https)>
 /search <YOUR GEM TITLE>
 /help
 `)
