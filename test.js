@@ -1,6 +1,6 @@
 const TelegramBot = require("node-telegram-bot-api");
-const OpenAI = require("openai");
 const axios = require("axios");
+const OpenAI = require("openai");
 const jsdom = require("jsdom");
 const { JSDOM } = jsdom;
 require("dotenv").config();
@@ -125,10 +125,7 @@ const saveLink = async (chatId, link) => {
 
   const baseUrl = `${process.env.CURATEIT_API_URL}/api/gems?populate=tags`;
   const authToken = sessionToken;
-  if (!authToken || authToken == 0) {
-    bot.sendMessage(chatId, "Invalid User, Please relogin");
-    return "nulluser";
-  }
+
   console.log("authToken from saveLink : ", authToken);
   const body = {
     data: {
