@@ -5,7 +5,18 @@ require("dotenv").config();
 
 const bot = new Bot(process.env.BOT_TOKEN);
 
-bot.command("start", (ctx) => ctx.reply("Welcome, Up and running."));
+bot.command("start", (ctx) => ctx.reply(`
+CurateitAI - AI Productivity Assistance Bot
+🌟 Ask Questions about any Youtube Video or Web page
+🌟 Bookmark your gems to CurateIT
+🌟 Search your CurateIT Gems
+
+👉Basic Commands👈
+
+/ask <YOUR URL>
+/save <YOUR GEM URL>
+/search <YOUR GEM TITLE>
+`));
 bot.on("message", (ctx) => ctx.reply("Got a message!"));
 
 if (process.env.NODE_ENV === "production") {
