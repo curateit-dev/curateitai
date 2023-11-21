@@ -199,6 +199,18 @@ async function saveGemHandler(conversation, ctx) {
   return;
 }
 
+async function searchGemHandler(conversation, ctx) {
+  if (sessionId == 0 && sessionToken == 0) {
+    await ctx.reply("User not logged in");
+    return;
+  }
+  const query = ctx.session.searchQuery;
+  await ctx.reply(`Searching for: ${query}`);
+  delete ctx.session.searchQuery;
+  return;
+}
+
+bot.use(createConversation(searchGemHandler));
 bot.use(createConversation(saveGemHandler));
 bot.use(createConversation(loginHandler));
 
@@ -254,6 +266,16 @@ bot.command("save", async (ctx) => {
       "Invalid URL provided. Please enter a valid URL after /save"
     );
   }
+});
+
+// Search command
+bot.command("search", async (ctx) => {
+  const query = ctx.message.text.split(" ").slice(1).join(" ");
+  if (!query) {
+    return ctx.reply("Please provide a search query after /search");
+  }
+  ctx.session.searchQuery = query;
+  await ctx.conversation.enter("searchGemHandler");
 });
 
 // Always exit any conversation upon /cancel
