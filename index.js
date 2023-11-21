@@ -1,11 +1,20 @@
 const { Bot, webhookCallback, Context, session } = require("grammy");
 const express = require("express");
+const axios = require("axios");
+
 const {
   conversations,
   createConversation,
 } = require("@grammyjs/conversations");
 
 require("dotenv").config();
+const chatThreads = new Map();
+let currUsername = "User";
+
+let loginState = {};
+let apiResponse = {};
+let sessionToken = 0;
+let sessionId = 0;
 
 const bot = new Bot(process.env.BOT_TOKEN);
 
@@ -13,21 +22,44 @@ bot.use(session({ initial: () => ({}) }));
 bot.use(conversations());
 
 /** Defines the conversation */
-async function greeting(conversation, ctx) {
-  // console.log("conversation : ", conversation);
-  // console.log("ctx : ", ctx);
-  // TODO: code the conversation
-  await ctx.reply("Hi! And Bye!");
-  await ctx.reply("Bye! And Hi!");
-  // Leave the conversation:
+async function loginHandler(conversation, ctx) {
+  await ctx.reply("Please enter your email:");
+  const email = await conversation.wait();
+
+  await ctx.reply("Please enter your password:");
+  const password = await conversation.wait();
+
+  try {
+    console.log("in try block");
+    const response = await axios.post(
+      `${process.env.CURATEIT_API_URL}/api/auth/local`,
+      {
+        identifier: email.message.text,
+        password: password.message.text,
+      }
+    );
+    sessionToken = response.data.jwt;
+    sessionId = response.data.user.id;
+    currUsername = response.data.user.username;
+    console.log("sessionId : ", sessionId);
+    console.log("sessionToken : ", sessionToken);
+    await ctx.reply("Login Successful");
+  } catch (error) {
+    console.log("error : ", error);
+    if (error.response && error.response.status === 400) {
+      await ctx.reply("Invalid credentials");
+    } else {
+      await ctx.reply("Login failed. Please try again.");
+    }
+  }
+
   return;
 }
 
-bot.use(createConversation(greeting));
+bot.use(createConversation(loginHandler));
 
 bot.command("login", async (ctx) => {
-  // enter the function "greeting" you declared
-  await ctx.conversation.enter("greeting");
+  await ctx.conversation.enter("loginHandler");
 });
 
 bot.command("start", (ctx) =>
