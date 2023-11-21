@@ -11,7 +11,7 @@ require("dotenv").config();
 const chatThreads = new Map();
 let currUsername = "User";
 
-let loginState = {};
+let isLoggedIn = false;
 let apiResponse = {};
 let sessionToken = 0;
 let sessionId = 0;
@@ -23,6 +23,9 @@ bot.use(conversations());
 
 /** Defines the conversation */
 async function loginHandler(conversation, ctx) {
+  if (sessionId !== 0 && sessionToken !== 0) {
+    await ctx.reply("You are already logged in");
+  }
   await ctx.reply("Please enter your email:");
   const email = await conversation.wait();
 
@@ -30,7 +33,6 @@ async function loginHandler(conversation, ctx) {
   const password = await conversation.wait();
 
   try {
-    console.log("in try block");
     const response = await axios.post(
       `${process.env.CURATEIT_API_URL}/api/auth/local`,
       {
@@ -43,6 +45,7 @@ async function loginHandler(conversation, ctx) {
     currUsername = response.data.user.username;
     console.log("sessionId : ", sessionId);
     console.log("sessionToken : ", sessionToken);
+    isLoggedIn = true;
     await ctx.reply("Login Successful");
   } catch (error) {
     console.log("error : ", error);
@@ -74,6 +77,21 @@ CurateitAI - AI Productivity Assistance Bot
 /ask <YOUR URL>
 /save <YOUR GEM URL>
 /search <YOUR GEM TITLE>
+/help
+`)
+);
+
+// Give Examples of all available Commands
+bot.command("help", async (ctx) =>
+  ctx.reply(`
+/save <YOUR GEM URL>
+e.g. /save https://en.wikipedia.org/wiki/india
+
+/ask <YOUR URL>
+e.g. /ask https://www.youtube.com/watch?v=dQw4w9WgXcQ
+
+/search <YOUR GEM TITLE>
+e.g. /search India
 `)
 );
 
