@@ -263,7 +263,7 @@ CurateitAI - AI Productivity Assistance Bot
 👉Basic Commands👈
 
 /login
-/save <YOUR GEM URL (http or https)>
+/save <YOUR GEM URL>
 /search <YOUR GEM TITLE>
 /help
 `)
