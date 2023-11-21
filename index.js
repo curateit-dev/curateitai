@@ -229,10 +229,10 @@ async function searchGemHandler(conversation, ctx) {
     const data = await response.json();
     if (data && data.totalCount > 0) {
       const res = {
-        title: data?.finalRes[0]?.title,
+        title: data?.finalRes[0]?.title.replace(specialChars, "\\$&"),
         url: data?.finalRes[0]?.url.replace(specialChars, "\\$&"),
       };
-      await ctx.reply(`**Found a Gem** :- [${res.title}](${res.url})`, {
+      await ctx.reply(`**Found a Gem** :\\- [${res.title}](${res.url})`, {
         parse_mode: "MarkdownV2",
       });
       return res;
