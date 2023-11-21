@@ -87,6 +87,7 @@ async function unfilteredCollectionId() {
 async function loginHandler(conversation, ctx) {
   if (sessionId !== 0 && sessionToken !== 0) {
     await ctx.reply("You are already logged in");
+    return;
   }
   await ctx.reply("Please enter your email:");
   const email = await conversation.wait();
