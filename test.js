@@ -182,65 +182,6 @@ const saveLink = async (chatId, link) => {
   }
 };
 
-bot.onText(/\/login/, (msg) => {
-  const chatId = msg.chat.id;
-  loginState[chatId] = { step: "email" };
-  bot.sendMessage(chatId, "Please enter your email to login");
-});
-
-// Handles Login
-bot.on("message", async (msg) => {
-  const chatId = msg.chat.id;
-  // if (!sessionToken || sessionToken == 0) {
-  //   bot.sendMessage(chatId, "Invalid User, Please relogin");
-  //   return;
-  // }
-
-  if (loginState[chatId] && loginState[chatId].step === "email") {
-    loginState[chatId] = { step: "password", email: msg.text };
-    bot.sendMessage(chatId, "Please enter your password");
-    return;
-  }
-
-  if (loginState[chatId] && loginState[chatId].step === "password") {
-    const email = loginState[chatId].email;
-    const password = msg.text;
-
-    try {
-      const response = await axios.post(
-        `${process.env.CURATEIT_API_URL}/api/auth/local`,
-        {
-          identifier: email,
-          password: password,
-        }
-      );
-
-      apiResponse[chatId] = response.data; // Store the API response
-      sessionToken = response.data.jwt;
-      sessionId = response.data.user.id;
-      currUsername = response.data.user.username;
-      console.log("sessionId : ", sessionId);
-      console.log("sessionToken : ", sessionToken);
-      bot.sendMessage(chatId, "Login Successful");
-    } catch (error) {
-      if (error.response && error.response.status === 400) {
-        bot.sendMessage(chatId, "Invalid credentials");
-      } else {
-        bot.sendMessage(chatId, "Login failed. Please try again.");
-      }
-    }
-
-    delete loginState[chatId];
-    return;
-  }
-});
-
-const systemMessage = {
-  role: "system",
-  content:
-    "You are CurateitAI, a productivity assistant and your job is to help users with their productivity.",
-};
-
 bot.onText(/\/start/, (msg) => {
   bot.sendMessage(msg.chat.id, "Welcome To CurateitAI");
   const chatId = msg.chat.id;

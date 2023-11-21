@@ -21,6 +21,19 @@ const bot = new Bot(process.env.BOT_TOKEN);
 bot.use(session({ initial: () => ({}) }));
 bot.use(conversations());
 
+function isValidURL(str) {
+  var pattern = new RegExp(
+    "^(https?:\\/\\/)?" +
+      "((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|" +
+      "((\\d{1,3}\\.){3}\\d{1,3}))" +
+      "(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*" +
+      "(\\?[;&a-z\\d%_.~+=-]*)?" +
+      "(\\#[-a-z\\d_]*)?$",
+    "i"
+  );
+  return !!pattern.test(str);
+}
+
 /** Defines the conversation */
 async function loginHandler(conversation, ctx) {
   if (sessionId !== 0 && sessionToken !== 0) {
@@ -59,6 +72,44 @@ async function loginHandler(conversation, ctx) {
   return;
 }
 
+async function saveGemHandler(conversation, ctx) {
+  // if (sessionId !== 0 && sessionToken !== 0) {
+  //   await ctx.reply("You are already logged in");
+  // }
+  // await ctx.reply("Please enter your email:");
+  // const email = await conversation.wait();
+
+  // await ctx.reply("Please enter your password:");
+  // const password = await conversation.wait();
+
+  // try {
+  //   const response = await axios.post(
+  //     `${process.env.CURATEIT_API_URL}/api/auth/local`,
+  //     {
+  //       identifier: email.message.text,
+  //       password: password.message.text,
+  //     }
+  //   );
+  //   sessionToken = response.data.jwt;
+  //   sessionId = response.data.user.id;
+  //   currUsername = response.data.user.username;
+  //   console.log("sessionId : ", sessionId);
+  //   console.log("sessionToken : ", sessionToken);
+  //   isLoggedIn = true;
+  //   await ctx.reply("Login Successful");
+  // } catch (error) {
+  //   console.log("error : ", error);
+  //   if (error.response && error.response.status === 400) {
+  //     await ctx.reply("Invalid credentials");
+  //   } else {
+  //     await ctx.reply("Login failed. Please try again.");
+  //   }
+  // }
+  await ctx.reply("inside savegemhandler");
+  return;
+}
+
+bot.use(createConversation(saveGemHandler));
 bot.use(createConversation(loginHandler));
 
 bot.command("login", async (ctx) => {
@@ -95,6 +146,24 @@ e.g. /search India
 `)
 );
 
+bot.command("save", async (ctx) => {
+  const messageText = ctx.message.text;
+  const args = messageText.split(" ");
+
+  if (args.length < 2) {
+    return ctx.reply("Please provide a URL after /save");
+  }
+
+  const url = args[1];
+
+  if (isValidURL(url)) {
+    await ctx.conversation.enter("saveGemHandler");
+  } else {
+    return ctx.reply(
+      "Invalid URL provided. Please enter a valid URL after /save"
+    );
+  }
+});
 bot.on("message", (ctx) => ctx.reply("Got a message!"));
 
 if (process.env.NODE_ENV === "production") {
