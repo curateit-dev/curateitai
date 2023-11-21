@@ -12,6 +12,7 @@ const {
 require("dotenv").config();
 const chatThreads = new Map();
 let currUsername = "User";
+const specialChars = /[-\\[\]{}()*+?.,^$|#\s]/g;
 
 let isLoggedIn = false;
 let apiResponse = {};
@@ -205,8 +206,42 @@ async function searchGemHandler(conversation, ctx) {
     return;
   }
   const query = ctx.session.searchQuery;
-  await ctx.reply(`Searching for: ${query}`);
+  // await ctx.reply(`Searching for: ${query}`);
   delete ctx.session.searchQuery;
+  // console.log("Search Gem called with params : ", chatId, " : ", query);
+  const authToken = sessionToken;
+
+  const filterBy = "title";
+  const url = `${process.env.CURATEIT_API_URL}/api/filter-search?filterby=${filterBy}&queryby=${query}&termtype=contains&page=1&perPage=20`;
+  const options = {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${authToken}`,
+    },
+  };
+
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    if (data && data.totalCount > 0) {
+      const res = {
+        title: data?.finalRes[0]?.title,
+        url: data?.finalRes[0]?.url.replace(specialChars, "\\$&"),
+      };
+      await ctx.reply(`**Found a Gem** :- [${res.title}](${res.url})`, {
+        parse_mode: "MarkdownV2",
+      });
+      return res;
+    } else {
+      console.log("No gem found.");
+      await ctx.reply("No Gem Found");
+    }
+  } catch (error) {
+    console.error("Error fetching gem data:", error);
+  }
   return;
 }
 
