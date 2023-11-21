@@ -262,7 +262,7 @@ CurateitAI - AI Productivity Assistance Bot
 
 👉Basic Commands👈
 
-/ask <YOUR URL>
+/login
 /save <YOUR GEM URL (http or https)>
 /search <YOUR GEM TITLE>
 /help
@@ -272,14 +272,19 @@ CurateitAI - AI Productivity Assistance Bot
 // Give Examples of all available Commands
 bot.command("help", async (ctx) =>
   ctx.reply(`
+/start - Start Command
+
+/login - Login to Curateit
+
 /save <YOUR GEM URL>
 e.g. /save https://en.wikipedia.org/wiki/india
 
-/ask <YOUR URL>
-e.g. /ask https://www.youtube.com/watch?v=dQw4w9WgXcQ
+/help - Help Window
 
 /search <YOUR GEM TITLE>
 e.g. /search India
+
+/check - Checks you login status
 `)
 );
 
@@ -313,12 +318,6 @@ bot.command("search", async (ctx) => {
   await ctx.conversation.enter("searchGemHandler");
 });
 
-// Always exit any conversation upon /cancel
-bot.command("cancel", async (ctx) => {
-  await ctx.conversation.exit();
-  await ctx.reply("Leaving the conversation.");
-});
-
 // check login status
 bot.command("check", async (ctx) => {
   console.log("sessionId : ", sessionId);
@@ -330,7 +329,13 @@ bot.command("check", async (ctx) => {
   }
 });
 
-bot.on("message", (ctx) => ctx.reply("Got a message!"));
+bot.on("message", (ctx) => {
+  if (sessionId == 0 && sessionToken == 0) {
+    ctx.reply("You are not logged in.");
+  } else {
+    ctx.reply("Got a message!");
+  }
+});
 
 if (process.env.NODE_ENV === "production") {
   const app = express();
