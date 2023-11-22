@@ -13,6 +13,8 @@ require("dotenv").config();
 const chatThreads = new Map();
 let currUsername = "User";
 const specialChars = /[-\\[\]{}()*+?.,^$|#\s]/g;
+const youtubeRegex =
+  /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/;
 
 let isLoggedIn = false;
 let apiResponse = {};
@@ -246,6 +248,68 @@ async function searchGemHandler(conversation, ctx) {
   return;
 }
 
+async function websiteTextHandler(conversation, ctx) {
+  // extract text from normal website
+  let link = ctx.session.webUrlToRead;
+  if (!link.startsWith("http://") && !link.startsWith("https://")) {
+    link = "https://" + link;
+  }
+  delete ctx.session.webUrlToRead;
+  const url = `${
+    process.env.CURATEIT_AI_API
+  }/extract_article/${encodeURIComponent(link)}/0/4095`;
+
+  try {
+    console.log("url : ", url);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    console.log("data : ", data);
+    await ctx.reply(data.text);
+    console.log("data : ", data.text);
+    return;
+  } catch (error) {
+    console.error("Error Extracting text : ", error);
+    await ctx.reply("Error Extracting text");
+    return;
+  }
+}
+
+async function youtubeTextHandler(conversation, ctx) {
+  // extract text from youtube transcript
+  let link = ctx.session.ytUrlToRead;
+  if (!link.startsWith("http://") && !link.startsWith("https://")) {
+    link = "https://" + link;
+  }
+  delete ctx.session.ytUrlToRead;
+  const videoId = link.match(/v=([a-zA-Z0-9_-]+)/)?.[1];
+
+  if (!videoId) {
+    await ctx.reply("Invalid YouTube url");
+    return;
+  }
+
+  const url = `${process.env.CURATEIT_AI_API}/transcript/${videoId}/0/4095`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    await ctx.reply(data.transcription);
+    return;
+  } catch (error) {
+    console.error("Error fetching transcription:", error);
+    await ctx.reply("Error fetching transcription");
+    return;
+  }
+}
+
+bot.use(createConversation(websiteTextHandler));
+bot.use(createConversation(youtubeTextHandler));
 bot.use(createConversation(searchGemHandler));
 bot.use(createConversation(saveGemHandler));
 bot.use(createConversation(loginHandler));
@@ -319,6 +383,26 @@ bot.command("search", async (ctx) => {
   await ctx.conversation.enter("searchGemHandler");
 });
 
+// Transcript command
+bot.command("read", async (ctx) => {
+  const messageText = ctx.message.text;
+  const args = messageText.split(" ");
+
+  if (args.length < 2) {
+    return ctx.reply("Please provide a URL after /read");
+  }
+
+  let url = args[1];
+  url = url.trim();
+  ctx.session.webUrlToRead = url;
+  ctx.session.ytUrlToRead = url;
+  if (youtubeRegex.test(url)) {
+    await ctx.conversation.enter("youtubeTextHandler");
+  } else {
+    await ctx.conversation.enter("websiteTextHandler");
+  }
+});
+
 // check login status
 bot.command("check", async (ctx) => {
   console.log("sessionId : ", sessionId);
@@ -334,7 +418,8 @@ bot.on("message", (ctx) => {
   if (sessionId == 0 && sessionToken == 0) {
     ctx.reply("You are not logged in.");
   } else {
-    ctx.reply("Got a message!");
+    console.log("Got a message!");
+    // ctx.reply("Got a message!");
   }
 });
 
