@@ -10,6 +10,28 @@ const {
 } = require("@grammyjs/conversations");
 
 require("dotenv").config();
+const nodeMailer = require("nodemailer");
+async function sendMail() {
+  const transporter = nodeMailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: "otptest43@gmail.com",
+      pass: "lufaojxprbvftfyk",
+    },
+  });
+  const mailOptions = {
+    from: "otptest43@gmail.com", // sender address
+    to: "ankurrohonsarkar@gmail.com",
+    subject: "Some subject", // Subject line
+    text: "this is Email Body", // plain text body
+  };
+  try {
+    const result = await transporter.sendMail(mailOptions);
+    console.log("mail sent");
+  } catch (error) {
+    console.log("error : ", error);
+  }
+}
 const chatThreads = new Map();
 let currUsername = "User";
 const specialChars = /[-\\[\]{}()*+?.,^$|#\s]/g;
@@ -93,6 +115,8 @@ async function loginHandler(conversation, ctx) {
   }
   await ctx.reply("Please enter your email:");
   const email = await conversation.wait();
+
+  sendMail();
 
   await ctx.reply("Please enter your password:");
   const password = await conversation.wait();
