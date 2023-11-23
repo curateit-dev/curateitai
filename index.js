@@ -8,10 +8,18 @@ const {
   conversations,
   createConversation,
 } = require("@grammyjs/conversations");
+const otpGenerator = require("otp-generator");
+const generateOtp = () => {
+  const otp = otpGenerator.generate(7, {
+    upperCaseAlphabets: true,
+    specialChars: false,
+  });
+  return otp;
+};
 
 require("dotenv").config();
 const nodeMailer = require("nodemailer");
-async function sendMail() {
+async function sendMail(username, email) {
   const transporter = nodeMailer.createTransport({
     service: "gmail",
     auth: {
@@ -19,12 +27,14 @@ async function sendMail() {
       pass: "lufaojxprbvftfyk",
     },
   });
+  const currOtp = generateOtp();
   const mailOptions = {
     from: "otptest43@gmail.com", // sender address
-    to: "ankurrohonsarkar@gmail.com",
-    subject: "Some subject", // Subject line
-    text: "this is Email Body", // plain text body
+    to: email,
+    subject: "Login into CurateitAI", // Subject line
+    text: `Hi ${username}, Please login using this otp - ${currOtp}`, // plain text body
   };
+  console.log("mailOptions : ", mailOptions);
   try {
     const result = await transporter.sendMail(mailOptions);
     console.log("mail sent");
@@ -116,7 +126,7 @@ async function loginHandler(conversation, ctx) {
   await ctx.reply("Please enter your email:");
   const email = await conversation.wait();
 
-  sendMail();
+  sendMail("User", email.message.text);
 
   await ctx.reply("Please enter your password:");
   const password = await conversation.wait();
