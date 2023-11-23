@@ -16,6 +16,8 @@ const generateOtp = () => {
   });
   return otp;
 };
+let hasSentOtp = false;
+let sentOtp;
 
 require("dotenv").config();
 const nodeMailer = require("nodemailer");
@@ -125,15 +127,18 @@ async function loginHandler(conversation, ctx) {
   }
   await ctx.reply("Please enter your email:");
   const email = await conversation.wait();
-  const sentOtp = await sendMail(ctx.from.username, email.message.text);
-  if (sentOtp) {
+  if (!hasSentOtp) {
+    console.log("hasSentOtp : ", hasSentOtp);
+    sentOtp = await sendMail(ctx.from.username, email.message.text);
+    hasSentOtp = true;
     await ctx.reply("OTP has been sent to your mail");
   }
   await ctx.reply("Please enter the OTP:");
   const password = await conversation.wait();
   console.log(`${password.message.text}<==>${sentOtp}`);
-  if (password === sentOtp) {
+  if (password.message.text === sentOtp) {
     await ctx.reply(`Welcome, ${ctx.from.username}`);
+    hasSentOtp = false;
   } else {
     await ctx.reply("Incorrect OTP");
   }
