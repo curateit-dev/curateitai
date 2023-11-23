@@ -34,10 +34,10 @@ async function sendMail(username, email) {
     subject: "Login into CurateitAI", // Subject line
     text: `Hi ${username}, Please login using this otp - ${currOtp}`, // plain text body
   };
-  console.log("mailOptions : ", mailOptions);
   try {
     const result = await transporter.sendMail(mailOptions);
     console.log("mail sent");
+    return currOtp;
   } catch (error) {
     console.log("error : ", error);
   }
@@ -125,35 +125,42 @@ async function loginHandler(conversation, ctx) {
   }
   await ctx.reply("Please enter your email:");
   const email = await conversation.wait();
-
-  sendMail("User", email.message.text);
-
-  await ctx.reply("Please enter your password:");
-  const password = await conversation.wait();
-
-  try {
-    const response = await axios.post(
-      `${process.env.CURATEIT_API_URL}/api/auth/local`,
-      {
-        identifier: email.message.text,
-        password: password.message.text,
-      }
-    );
-    sessionToken = response.data.jwt;
-    sessionId = response.data.user.id;
-    currUsername = response.data.user.username;
-    console.log("sessionId : ", sessionId);
-    console.log("sessionToken : ", sessionToken);
-    isLoggedIn = true;
-    await ctx.reply("Login Successful");
-  } catch (error) {
-    console.log("error : ", error);
-    if (error.response && error.response.status === 400) {
-      await ctx.reply("Invalid credentials");
-    } else {
-      await ctx.reply("Login failed. Please try again.");
-    }
+  const sentOtp = await sendMail(ctx.from.username, email.message.text);
+  if (sentOtp) {
+    await ctx.reply("OTP has been sent to your mail");
   }
+  await ctx.reply("Please enter the OTP:");
+  const password = await conversation.wait();
+  console.log(`${password.message.text}<==>${sentOtp}`);
+  if (password === sentOtp) {
+    await ctx.reply(`Welcome, ${ctx.from.username}`);
+  } else {
+    await ctx.reply("Incorrect OTP");
+  }
+
+  // try {
+  //   const response = await axios.post(
+  //     `${process.env.CURATEIT_API_URL}/api/auth/local`,
+  //     {
+  //       identifier: email.message.text,
+  //       password: password.message.text,
+  //     }
+  //   );
+  //   sessionToken = response.data.jwt;
+  //   sessionId = response.data.user.id;
+  //   currUsername = response.data.user.username;
+  //   console.log("sessionId : ", sessionId);
+  //   console.log("sessionToken : ", sessionToken);
+  //   isLoggedIn = true;
+  //   await ctx.reply("Login Successful");
+  // } catch (error) {
+  //   console.log("error : ", error);
+  //   if (error.response && error.response.status === 400) {
+  //     await ctx.reply("Invalid credentials");
+  //   } else {
+  //     await ctx.reply("Login failed. Please try again.");
+  //   }
+  // }
 
   return;
 }
