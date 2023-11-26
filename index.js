@@ -34,7 +34,7 @@ async function sendMail(username, email) {
     from: "otptest43@gmail.com", // sender address
     to: email,
     subject: "Login into CurateitAI", // Subject line
-    text: `Hi ${username}, Please login using this otp - ${currOtp}`, // plain text body
+    text: `Hi ${username}, Please login using this Code - ${currOtp}`, // plain text body
   };
   try {
     const result = await transporter.sendMail(mailOptions);
@@ -119,6 +119,35 @@ async function unfilteredCollectionId() {
   }
 }
 
+async function getUserDetails(ctx, emailId) {
+  try {
+    const data = await fetch(
+      `${process.env.CURATEIT_API_URL}/api/user-details?email=${emailId}`
+    );
+    const response = await data.json();
+    // console.log("response : ", response);
+    console.log("response : ", response);
+    sessionToken = response.jwt;
+    sessionId = response?.user?.id;
+    currUsername = response?.user?.username;
+    console.log("in userdetails sessionId : ", sessionId);
+    console.log("in userdetails sessionToken : ", sessionToken);
+    console.log("in userdetails currUsername : ", currUsername);
+    isLoggedIn = true;
+    await ctx.reply("Login Successful");
+    return;
+  } catch (error) {
+    console.log("error : ", error);
+    if (error.response && error.response.status === 400) {
+      await ctx.reply("User Not Found, Please register using /register");
+      return;
+    } else {
+      await ctx.reply("Login failed. Please try again.");
+      return;
+    }
+  }
+}
+
 /** Defines the conversation */
 async function loginHandler(conversation, ctx) {
   if (sessionId !== 0 && sessionToken !== 0) {
@@ -131,16 +160,28 @@ async function loginHandler(conversation, ctx) {
     console.log("hasSentOtp : ", hasSentOtp);
     sentOtp = await sendMail(ctx.from.username, email.message.text);
     hasSentOtp = true;
-    await ctx.reply("OTP has been sent to your mail");
+    await ctx.reply("Code has been sent to your mail");
   }
-  await ctx.reply("Please enter the OTP:");
+  await ctx.reply("Please enter the Code:");
   const password = await conversation.wait();
-  console.log(`${password.message.text}<==>${sentOtp}`);
-  if (password.message.text === sentOtp) {
-    await ctx.reply(`Welcome, ${ctx.from.username}`);
+  await getUserDetails(ctx, email.message.text);
+  // console.log(`${password.message.text}<==>${sentOtp}`);
+  if (
+    password.message.text === sentOtp &&
+    sessionId == undefined &&
+    sessionToken == undefined
+  ) {
+    await ctx.reply(`User not registered`);
+    hasSentOtp = false;
+  } else if (
+    password.message.text === sentOtp &&
+    sessionId !== 0 &&
+    sessionToken !== 0
+  ) {
+    await ctx.reply(`Welcome, ${currUsername}`);
     hasSentOtp = false;
   } else {
-    await ctx.reply("Incorrect OTP");
+    await ctx.reply("Incorrect Code");
   }
 
   // try {
@@ -461,12 +502,13 @@ bot.command("check", async (ctx) => {
 });
 
 bot.on("message", (ctx) => {
-  if (sessionId == 0 && sessionToken == 0) {
+  if (sessionId === 0 && sessionToken === 0) {
     ctx.reply("You are not logged in.");
-  } else {
-    console.log("Got a message!");
-    // ctx.reply("Got a message!");
   }
+  //  else {
+  //   // console.log("Got a message!");
+  //   // ctx.reply("Got a message!");
+  // }
 });
 
 if (process.env.NODE_ENV === "production") {
