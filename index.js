@@ -54,6 +54,9 @@ let isLoggedIn = false;
 let apiResponse = {};
 let sessionToken = 0;
 let sessionId = 0;
+let dummySessionToken = 0;
+let dummySessionId = 0;
+let userExists;
 
 const bot = new Bot(process.env.BOT_TOKEN);
 
@@ -127,24 +130,32 @@ async function getUserDetails(ctx, emailId) {
     const response = await data.json();
     // console.log("response : ", response);
     console.log("response : ", response);
-    sessionToken = response.jwt;
-    sessionId = response?.user?.id;
+    dummySessionToken = response.jwt;
+    dummySessionId = response?.user?.id;
     currUsername = response?.user?.username;
-    console.log("in userdetails sessionId : ", sessionId);
-    console.log("in userdetails sessionToken : ", sessionToken);
+    console.log("in userdetails dummySessionId : ", dummySessionId);
+    console.log("in userdetails dummySessionToken : ", dummySessionToken);
     console.log("in userdetails currUsername : ", currUsername);
     isLoggedIn = true;
-    await ctx.reply("Login Successful");
+    if (currUsername != undefined) {
+      userExists = true;
+      console.log("user exists");
+    } else {
+      userExists = false;
+      console.log("user doesnt exists");
+      ctx.reply("Email not registered, please use /register");
+    }
+    // await ctx.reply("Login Successful");
     return;
   } catch (error) {
     console.log("error : ", error);
-    if (error.response && error.response.status === 400) {
-      await ctx.reply("User Not Found, Please register using /register");
-      return;
-    } else {
-      await ctx.reply("Login failed. Please try again.");
-      return;
-    }
+    // if (error.response && error.response.status === 400) {
+    //   await ctx.reply("User Not Found, Please register using /register");
+    //   return;
+    // } else {
+    //   await ctx.reply("Login failed. Please try again.");
+    //   return;
+    // }
   }
 }
 
@@ -156,58 +167,40 @@ async function loginHandler(conversation, ctx) {
   }
   await ctx.reply("Please enter your email:");
   const email = await conversation.wait();
-  if (!hasSentOtp) {
-    console.log("hasSentOtp : ", hasSentOtp);
-    sentOtp = await sendMail(ctx.from.username, email.message.text);
-    hasSentOtp = true;
-    await ctx.reply("Code has been sent to your mail");
-  }
-  await ctx.reply("Please enter the Code:");
-  const password = await conversation.wait();
   await getUserDetails(ctx, email.message.text);
-  // console.log(`${password.message.text}<==>${sentOtp}`);
-  if (
-    password.message.text === sentOtp &&
-    sessionId == undefined &&
-    sessionToken == undefined
-  ) {
-    await ctx.reply(`User not registered`);
-    hasSentOtp = false;
-  } else if (
-    password.message.text === sentOtp &&
-    sessionId !== 0 &&
-    sessionToken !== 0
-  ) {
-    await ctx.reply(`Welcome, ${currUsername}`);
-    hasSentOtp = false;
-  } else {
-    await ctx.reply("Incorrect Code");
+  if (userExists === true) {
+    if (!hasSentOtp) {
+      console.log("hasSentOtp : ", hasSentOtp);
+      sentOtp = await sendMail(ctx.from.username, email.message.text);
+      hasSentOtp = true;
+      await ctx.reply("Code has been sent to your mail");
+    }
+    await ctx.reply("Please enter the Code:");
+    const password = await conversation.wait();
+    // console.log(`${password.message.text}<==>${sentOtp}`);
+    if (
+      password.message.text === sentOtp &&
+      sessionId == undefined &&
+      sessionToken == undefined
+    ) {
+      await ctx.reply(`User not registered`);
+      hasSentOtp = false;
+    } else if (
+      password.message.text === sentOtp 
+      // &&
+      // sessionId !== 0 &&
+      // sessionToken !== 0 &&
+      // sessionId !== undefined &&
+      // sessionToken !== undefined
+    ) {
+      sessionId = dummySessionId;
+      sessionToken = dummySessionToken;
+      await ctx.reply(`Welcome, ${currUsername}`);
+      hasSentOtp = false;
+    } else {
+      await ctx.reply("Incorrect Code");
+    }
   }
-
-  // try {
-  //   const response = await axios.post(
-  //     `${process.env.CURATEIT_API_URL}/api/auth/local`,
-  //     {
-  //       identifier: email.message.text,
-  //       password: password.message.text,
-  //     }
-  //   );
-  //   sessionToken = response.data.jwt;
-  //   sessionId = response.data.user.id;
-  //   currUsername = response.data.user.username;
-  //   console.log("sessionId : ", sessionId);
-  //   console.log("sessionToken : ", sessionToken);
-  //   isLoggedIn = true;
-  //   await ctx.reply("Login Successful");
-  // } catch (error) {
-  //   console.log("error : ", error);
-  //   if (error.response && error.response.status === 400) {
-  //     await ctx.reply("Invalid credentials");
-  //   } else {
-  //     await ctx.reply("Login failed. Please try again.");
-  //   }
-  // }
-
   return;
 }
 
@@ -405,6 +398,10 @@ bot.command("login", async (ctx) => {
   await ctx.conversation.enter("loginHandler");
 });
 
+bot.command("register",async (ctx)=>{
+  await ctx.reply("Please Head over to https://dev-app.curateit.com/sign-up to complete the registration")
+})
+
 bot.command("start", (ctx) =>
   ctx.reply(`
 CurateitAI - AI Productivity Assistance Bot
@@ -503,7 +500,7 @@ bot.command("check", async (ctx) => {
 
 bot.on("message", (ctx) => {
   if (sessionId === 0 && sessionToken === 0) {
-    ctx.reply("You are not logged in.");
+    ctx.reply("You are not logged in");
   }
   //  else {
   //   // console.log("Got a message!");
