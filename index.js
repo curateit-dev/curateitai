@@ -79,35 +79,48 @@ function isValidURL(str) {
   return !!pattern.test(str);
 }
 
-async function postFile(filePath) {
-  const body = {
-    // file: `https://api.telegram.org/file/bot6403660864/${filePath}`,
-    file: "https://api.telegram.org/file/bot6403660864:AAEOQAXGMBIbxkPF_aszEohYkRQwFh43zio/photos/file_6.jpg",
-  };
-
-  const token = sessionToken;
-  console.log("token : ", token);
-
-  const options = {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+async function uploadToS3(title, mediaType, link) {
+  const data = {
+    data: {
+      title: "Image Test 01",
+      description: "",
+      media_type: "Video",
+      author: 628,  // change
+      S3_link: [
+        "https://curateit-files.s3.amazonaws.com/common/users/144/bot-uploaded-files/file_3.jpg",
+      ],
+      url: "http://link.com",
+      media: {
+        audioLink:
+          "https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3?filename=ambient-relaxing-music-for-you-15969.mp3",
+        pdfLink:
+          "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        videoLink:
+          "https://curateit-files.s3.amazonaws.com/common/videos/MeaningOfLife.mp4",
+        covers: [
+          "https://curateit-files.s3.amazonaws.com/common/users/144/bot-uploaded-files/file_3.jpg",
+        ],
+      },
+      metaData: {
+        type: "Link",
+        title: "Image Test",
+        icon: "http://localhost:1337/admin/b997a22a2e0b87ef1fa2.ico",
+        url: "http://localhost:1337/admin/content-manager/collectionType/api::gem.gem/create",
+        covers: [
+          "https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3?filename=ambient-relaxing-music-for-you-15969.mp3",
+        ],
+        isYoutube: false,
+      },
+      collection_gems: 15863, // change
+      remarks: "",
+      tags: [],
+      is_favourite: false,
+      showThumbnail: true,
+      fileType: "file",
+      pdfLink:
+        "https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3?filename=ambient-relaxing-music-for-you-15969.mp3",
     },
-    body: JSON.stringify(body),
   };
-
-  try {
-    const response = await fetch(
-      "https://development-api.curateit.com/api/upload-all-file",
-      options
-    );
-    // const data = await response.json();
-    console.log("response :", response);
-    // console.log("data : ", data);
-  } catch (error) {
-    console.error(error);
-  }
 }
 
 async function fetchOpenGraphData(url) {
@@ -506,30 +519,35 @@ bot.command("search", async (ctx) => {
 
 bot.on("message:photo", async (ctx) => {
   await ctx.reply("thats an img");
+  // https://curateit-files.s3.amazonaws.com/common/users/144/bot-uploaded-files/file_3.jpg
   const file = await ctx.getFile();
   await ctx.reply(file.getUrl());
 });
 
 bot.on("message:video", async (ctx) => {
   await ctx.reply("thats a video");
+  // https://curateit-files.s3.amazonaws.com/common/videos/MeaningOfLife.mp4
   const file = await ctx.getFile();
   await ctx.reply(file.getUrl());
 });
 
 bot.on("message:audio", async (ctx) => {
   await ctx.reply("thats an audio");
+  // https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3?filename=ambient-relaxing-music-for-you-15969.mp3
   const file = await ctx.getFile();
   await ctx.reply(file.getUrl());
 });
 
 bot.on("message:voice", async (ctx) => {
   await ctx.reply("thats a voice");
+  // https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3?filename=ambient-relaxing-music-for-you-15969.mp3
   const file = await ctx.getFile();
   await ctx.reply(file.getUrl());
 });
 
 bot.on("message:document", async (ctx) => {
   await ctx.reply("thats a document"); // pdf + other files
+  // https://curateit-files.s3.amazonaws.com/common/pdf/examform.pdf
   const file = await ctx.getFile();
   await ctx.reply(file.getUrl());
 });
