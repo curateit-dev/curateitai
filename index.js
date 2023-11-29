@@ -79,13 +79,13 @@ function isValidURL(str) {
   return !!pattern.test(str);
 }
 
-async function uploadToS3(title, mediaType, link) {
+async function createGem(title, mediaType, link) {
   const data = {
     data: {
       title: "Image Test 01",
       description: "",
       media_type: "Video",
-      author: 628,  // change
+      author: 628, // change
       S3_link: [
         "https://curateit-files.s3.amazonaws.com/common/users/144/bot-uploaded-files/file_3.jpg",
       ],
@@ -121,6 +121,28 @@ async function uploadToS3(title, mediaType, link) {
         "https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3?filename=ambient-relaxing-music-for-you-15969.mp3",
     },
   };
+}
+
+async function uploadFile(link) {
+  const bearerToken = sessionToken;
+  const url = "https://development-api.curateit.com/api/upload-all-file";
+  const body = {
+    file: link,
+  };
+  const config = {
+    headers: {
+      Authorization: `Bearer ${bearerToken}`,
+    },
+  };
+
+  try {
+    const response = await axios.post(url, body, config);
+    apiResponse = response.data; // Assigning response to the module-level variable
+    console.log(apiResponse); // Logging the response
+    return apiResponse;
+  } catch (error) {
+    console.error("Error occurred:", error);
+  }
 }
 
 async function fetchOpenGraphData(url) {
@@ -521,7 +543,38 @@ bot.on("message:photo", async (ctx) => {
   await ctx.reply("thats an img");
   // https://curateit-files.s3.amazonaws.com/common/users/144/bot-uploaded-files/file_3.jpg
   const file = await ctx.getFile();
-  await ctx.reply(file.getUrl());
+  const fileUrl = file.getUrl();
+  // let s3Link = await uploadFile(fileUrl);
+  console.log("fileUrl : ", fileUrl);
+  // console.log("s3Link : ", s3Link);
+  const baseUrl = "https://development-api.curateit.com/api/upload-all-file";
+  const body = {
+    file: fileUrl,
+  };
+  const bearerToken =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTQ0LCJpYXQiOjE3MDA0MTY2ODEsImV4cCI6MTcwMzAwODY4MX0.FLjhNFJKE960DIQ_SwcGeLymf0dzP-QkD0dIKsGoMyE";
+  try {
+    const response = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${bearerToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const responseData = await response.json();
+    console.log("Successfully stored link:", responseData);
+    return;
+  } catch (error) {
+    console.error("Error storing link:", error);
+    return;
+  }
+  // await ctx.reply(s3Link);
 });
 
 bot.on("message:video", async (ctx) => {
@@ -533,14 +586,14 @@ bot.on("message:video", async (ctx) => {
 
 bot.on("message:audio", async (ctx) => {
   await ctx.reply("thats an audio");
-  // https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3?filename=ambient-relaxing-music-for-you-15969.mp3
+  // https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3
   const file = await ctx.getFile();
   await ctx.reply(file.getUrl());
 });
 
 bot.on("message:voice", async (ctx) => {
   await ctx.reply("thats a voice");
-  // https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3?filename=ambient-relaxing-music-for-you-15969.mp3
+  // https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3
   const file = await ctx.getFile();
   await ctx.reply(file.getUrl());
 });
