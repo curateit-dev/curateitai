@@ -79,16 +79,16 @@ function isValidURL(str) {
   return !!pattern.test(str);
 }
 
-async function createGem(title, mediaType, link) {
+async function createGem(ctx, title, mediaType, link) {
   let collectionId = await unfilteredCollectionId();
   const body = {
     data: {
       title: title,
-      description: "",
+      description: "Added by Telegram bot",
       media_type: mediaType,
       author: 621,
       S3_link: [link],
-      url: "http://link.com",
+      url: "http://link.com", // changing this will change the mediatype to product
       media: {
         audioLink: link,
         pdfLink: link,
@@ -97,12 +97,10 @@ async function createGem(title, mediaType, link) {
       },
       metaData: {
         type: "Link",
-        title: "Image Test",
-        icon: "http://localhost:1337/admin/b997a22a2e0b87ef1fa2.ico",
-        url: "http://localhost:1337/admin/content-manager/collectionType/api::gem.gem/create",
-        covers: [
-          "https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3?filename=ambient-relaxing-music-for-you-15969.mp3",
-        ],
+        title: title,
+        icon: "https://www.curateit.com/favicon.ico",
+        url: link,
+        covers: [link],
         isYoutube: false,
       },
       collection_gems: collectionId,
@@ -113,7 +111,6 @@ async function createGem(title, mediaType, link) {
       fileType: "file",
     },
   };
-  console.log("body : ", body);
   let baseUrl = "https://development-api.curateit.com/api/gems";
   try {
     const response = await fetch(baseUrl, {
@@ -129,8 +126,8 @@ async function createGem(title, mediaType, link) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const responseData = await response.json();
-    // console.log("createGem responseData:", responseData);
+    await response.json();
+    await ctx.reply(`${mediaType} File Stored`);
     return;
   } catch (error) {
     console.error("Error saving link:", error);
@@ -567,16 +564,17 @@ bot.command("search", async (ctx) => {
 });
 
 bot.on("message:photo", async (ctx) => {
-  // if (sessionId == 0 && sessionToken == 0) {
-  //   await ctx.reply("User not logged in");
-  //   return;
-  // }
-  await ctx.reply("thats an img");
+  if (sessionId == 0 && sessionToken == 0) {
+    await ctx.reply("User not logged in");
+    return;
+  }
+  // await ctx.reply("thats an img");
   // https://curateit-files.s3.amazonaws.com/common/users/144/bot-uploaded-files/file_3.jpg
   const file = await ctx.getFile();
   const fileUrl = file.getUrl();
+  const fileName = file.file_path.split("/").pop().split(".")[0];
   const res = await uploadToS3(ctx, fileUrl);
-  const storeGem = await createGem("Test IMG 01", "Image", res);
+  await createGem(ctx, fileName, "Image", res);
   // await ctx.reply(res);
 });
 
@@ -585,11 +583,13 @@ bot.on("message:video", async (ctx) => {
     await ctx.reply("User not logged in");
     return;
   }
-  await ctx.reply("thats a video");
+  // await ctx.reply("thats a video");
   // https://curateit-files.s3.amazonaws.com/common/videos/MeaningOfLife.mp4
   const file = await ctx.getFile();
   const fileUrl = file.getUrl();
+  const fileName = file.file_path.split("/").pop().split(".")[0];
   const res = await uploadToS3(ctx, fileUrl);
+  await createGem(ctx, fileName, "Video", res);
   // await ctx.reply(res);
 });
 
@@ -598,11 +598,13 @@ bot.on("message:audio", async (ctx) => {
     await ctx.reply("User not logged in");
     return;
   }
-  await ctx.reply("thats an audio");
+  // await ctx.reply("thats an audio");
   // https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3
   const file = await ctx.getFile();
   const fileUrl = file.getUrl();
+  const fileName = file.file_path.split("/").pop().split(".")[0];
   const res = await uploadToS3(ctx, fileUrl);
+  await createGem(ctx, fileName, "Audio", res);
   // await ctx.reply(res);
 });
 
@@ -611,11 +613,13 @@ bot.on("message:voice", async (ctx) => {
     await ctx.reply("User not logged in");
     return;
   }
-  await ctx.reply("thats a voice");
+  // await ctx.reply("thats a voice");
   // https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3
   const file = await ctx.getFile();
   const fileUrl = file.getUrl();
+  const fileName = file.file_path.split("/").pop().split(".")[0];
   const res = await uploadToS3(ctx, fileUrl);
+  await createGem(ctx, fileName, "Audio", res);
   // await ctx.reply(res);
 });
 
@@ -624,13 +628,16 @@ bot.on("message:document", async (ctx) => {
     await ctx.reply("User not logged in");
     return;
   }
-  await ctx.reply("thats a document"); // pdf + other files
+  // await ctx.reply("thats a document"); // pdf + other files
   // https://curateit-files.s3.amazonaws.com/common/pdf/examform.pdf
   const file = await ctx.getFile();
   const fileUrl = file.getUrl();
+  const fileName = file.file_path.split("/").pop().split(".")[0];
   const res = await uploadToS3(ctx, fileUrl);
+  await createGem(ctx, fileName, "PDF", res);
   // await ctx.reply(res);
 });
+
 // Transcript command
 bot.command("read", async (ctx) => {
   const messageText = ctx.message.text;
