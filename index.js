@@ -567,7 +567,7 @@ bot.on("message:photo", async (ctx) => {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const responseData = await response.json();
+    const responseData = await response.text();
     console.log("Successfully stored link:", responseData);
     return;
   } catch (error) {
