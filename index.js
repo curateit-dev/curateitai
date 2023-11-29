@@ -23,6 +23,7 @@ require("dotenv").config();
 const nodeMailer = require("nodemailer");
 const { autoQuote } = require("@roziscoding/grammy-autoquote");
 const { hydrateFiles } = require("@grammyjs/files");
+const { Menu } = require("@grammyjs/menu");
 async function sendMail(username, email) {
   const transporter = nodeMailer.createTransport({
     service: "gmail",
@@ -61,6 +62,20 @@ let dummySessionId = 0;
 let userExists;
 
 const bot = new Bot(process.env.BOT_TOKEN);
+
+const startmenu = new Menu("startMenu")
+  .text("Save Gem", (ctx) => ctx.reply("Try /save <YOUR_URL>"))
+  .row()
+  .text("Search Gem", (ctx) => ctx.reply("Try /search <GEM_TITLE>"))
+  .text("Transcribe", (ctx) => ctx.reply("Try /read <YOUR_URL>"));
+
+const readButton = new Menu("readButton").text("Transcribe", (ctx) =>
+  ctx.reply("Try /read <YOUR_URL>")
+);
+
+// Make it interactive
+bot.use(startmenu);
+bot.use(readButton);
 bot.api.config.use(hydrateFiles(bot.token));
 bot.use(session({ initial: () => ({}) }));
 bot.use(conversations());
@@ -366,15 +381,15 @@ async function saveGemHandler(conversation, ctx) {
 
     const responseData = await response.json();
     console.log("Successfully saved link:", link);
-    await ctx.reply("Successfully saved the link");
-    await ctx.reply(`Try /read ${link} to extract the text`);
+    await ctx.reply("Successfully saved the link", {
+      reply_markup: readButton,
+    });
     return;
   } catch (error) {
     console.error("Error saving link:", error);
     await ctx.reply("Could not save the link, please try again");
     return;
   }
-  return;
 }
 
 async function searchGemHandler(conversation, ctx) {
@@ -499,7 +514,8 @@ bot.command("register", async (ctx) => {
 });
 
 bot.command("start", (ctx) =>
-  ctx.reply(`
+  ctx.reply(
+    `
 CurateitAI - AI Productivity Assistance Bot
 🌟 Ask Questions about any Youtube Video or Web page
 🌟 Bookmark your gems to CurateIT
@@ -511,7 +527,9 @@ CurateitAI - AI Productivity Assistance Bot
 /save <YOUR GEM URL>
 /search <YOUR GEM TITLE>
 /help
-`)
+`,
+    { reply_markup: startmenu }
+  )
 );
 
 // Give Examples of all available Commands
