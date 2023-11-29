@@ -511,13 +511,25 @@ bot.on("message:photo", async (ctx) => {
 });
 
 bot.on("message:video", async (ctx) => {
-  await ctx.reply("thats an video");
+  await ctx.reply("thats a video");
   const file = await ctx.getFile();
   await ctx.reply(file.getUrl());
 });
 
 bot.on("message:audio", async (ctx) => {
   await ctx.reply("thats an audio");
+  const file = await ctx.getFile();
+  await ctx.reply(file.getUrl());
+});
+
+bot.on("message:voice", async (ctx) => {
+  await ctx.reply("thats a voice");
+  const file = await ctx.getFile();
+  await ctx.reply(file.getUrl());
+});
+
+bot.on("message:document", async (ctx) => {
+  await ctx.reply("thats a document"); // pdf + other files
   const file = await ctx.getFile();
   await ctx.reply(file.getUrl());
 });
