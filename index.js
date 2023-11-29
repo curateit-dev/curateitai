@@ -123,28 +123,6 @@ async function createGem(title, mediaType, link) {
   };
 }
 
-async function uploadFile(link) {
-  const bearerToken = sessionToken;
-  const url = "https://development-api.curateit.com/api/upload-all-file";
-  const body = {
-    file: link,
-  };
-  const config = {
-    headers: {
-      Authorization: `Bearer ${bearerToken}`,
-    },
-  };
-
-  try {
-    const response = await axios.post(url, body, config);
-    apiResponse = response.data; // Assigning response to the module-level variable
-    console.log(apiResponse); // Logging the response
-    return apiResponse;
-  } catch (error) {
-    console.error("Error occurred:", error);
-  }
-}
-
 async function fetchOpenGraphData(url) {
   const response = await fetch(url);
   const html = await response.text();
@@ -544,9 +522,6 @@ bot.on("message:photo", async (ctx) => {
   // https://curateit-files.s3.amazonaws.com/common/users/144/bot-uploaded-files/file_3.jpg
   const file = await ctx.getFile();
   const fileUrl = file.getUrl();
-  // let s3Link = await uploadFile(fileUrl);
-  console.log("fileUrl : ", fileUrl);
-  // console.log("s3Link : ", s3Link);
   const baseUrl = "https://development-api.curateit.com/api/upload-all-file";
   const body = {
     file: fileUrl,
@@ -569,6 +544,7 @@ bot.on("message:photo", async (ctx) => {
 
     const responseData = await response.text();
     console.log("Successfully stored link:", responseData);
+    await ctx.reply(responseData);
     return;
   } catch (error) {
     console.error("Error storing link:", error);
