@@ -123,6 +123,37 @@ async function createGem(title, mediaType, link) {
   };
 }
 
+async function uploadToS3(ctx, fileUrl) {
+  const baseUrl = "https://development-api.curateit.com/api/upload-all-file";
+  const body = {
+    file: fileUrl,
+  };
+  const bearerToken =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTQ0LCJpYXQiOjE3MDA0MTY2ODEsImV4cCI6MTcwMzAwODY4MX0.FLjhNFJKE960DIQ_SwcGeLymf0dzP-QkD0dIKsGoMyE";
+  try {
+    const response = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${bearerToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const responseData = await response.text();
+    console.log("Successfully stored link:", responseData);
+    // await ctx.reply(responseData);
+    return responseData;
+  } catch (error) {
+    console.error("Error storing link:", error);
+    return "Error";
+  }
+}
+
 async function fetchOpenGraphData(url) {
   const response = await fetch(url);
   const html = await response.text();
@@ -522,63 +553,49 @@ bot.on("message:photo", async (ctx) => {
   // https://curateit-files.s3.amazonaws.com/common/users/144/bot-uploaded-files/file_3.jpg
   const file = await ctx.getFile();
   const fileUrl = file.getUrl();
-  const baseUrl = "https://development-api.curateit.com/api/upload-all-file";
-  const body = {
-    file: fileUrl,
-  };
-  const bearerToken =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTQ0LCJpYXQiOjE3MDA0MTY2ODEsImV4cCI6MTcwMzAwODY4MX0.FLjhNFJKE960DIQ_SwcGeLymf0dzP-QkD0dIKsGoMyE";
-  try {
-    const response = await fetch(baseUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${bearerToken}`,
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const responseData = await response.text();
-    console.log("Successfully stored link:", responseData);
-    await ctx.reply(responseData);
-    return;
-  } catch (error) {
-    console.error("Error storing link:", error);
-    return;
-  }
-  // await ctx.reply(s3Link);
+  const res = await uploadToS3(ctx, fileUrl);
+  console.log("res : ", res);
+  await ctx.reply(res);
 });
 
 bot.on("message:video", async (ctx) => {
   await ctx.reply("thats a video");
   // https://curateit-files.s3.amazonaws.com/common/videos/MeaningOfLife.mp4
   const file = await ctx.getFile();
-  await ctx.reply(file.getUrl());
+  const fileUrl = file.getUrl();
+  const res = await uploadToS3(ctx, fileUrl);
+  console.log("res : ", res);
+  await ctx.reply(res);
 });
 
 bot.on("message:audio", async (ctx) => {
   await ctx.reply("thats an audio");
   // https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3
   const file = await ctx.getFile();
-  await ctx.reply(file.getUrl());
+  const fileUrl = file.getUrl();
+  const res = await uploadToS3(ctx, fileUrl);
+  console.log("res : ", res);
+  await ctx.reply(res);
 });
 
 bot.on("message:voice", async (ctx) => {
   await ctx.reply("thats a voice");
   // https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3
   const file = await ctx.getFile();
-  await ctx.reply(file.getUrl());
+  const fileUrl = file.getUrl();
+  const res = await uploadToS3(ctx, fileUrl);
+  console.log("res : ", res);
+  await ctx.reply(res);
 });
 
 bot.on("message:document", async (ctx) => {
   await ctx.reply("thats a document"); // pdf + other files
   // https://curateit-files.s3.amazonaws.com/common/pdf/examform.pdf
   const file = await ctx.getFile();
-  await ctx.reply(file.getUrl());
+  const fileUrl = file.getUrl();
+  const res = await uploadToS3(ctx, fileUrl);
+  console.log("res : ", res);
+  await ctx.reply(res);
 });
 // Transcript command
 bot.command("read", async (ctx) => {
