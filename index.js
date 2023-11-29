@@ -80,12 +80,13 @@ function isValidURL(str) {
 }
 
 async function createGem(title, mediaType, link) {
-  const data = {
+  let collectionId = await unfilteredCollectionId();
+  const body = {
     data: {
-      title: "Image Test 01",
+      title: title,
       description: "",
-      media_type: "Video",
-      author: 628, // change
+      media_type: "Image",
+      author: 621,
       S3_link: [
         "https://curateit-files.s3.amazonaws.com/common/users/144/bot-uploaded-files/file_3.jpg",
       ],
@@ -111,16 +112,38 @@ async function createGem(title, mediaType, link) {
         ],
         isYoutube: false,
       },
-      collection_gems: 15863, // change
+      collection_gems: collectionId,
       remarks: "",
       tags: [],
       is_favourite: false,
       showThumbnail: true,
       fileType: "file",
-      pdfLink:
-        "https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3?filename=ambient-relaxing-music-for-you-15969.mp3",
     },
   };
+  console.log("body : ", body);
+  let baseUrl = "https://development-api.curateit.com/api/gems";
+  try {
+    const response = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${sessionToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const responseData = await response.json();
+    // console.log("createGem responseData:", responseData);
+    return;
+  } catch (error) {
+    console.error("Error saving link:", error);
+    await ctx.reply("Could not save the link, please try again");
+    return;
+  }
 }
 
 async function uploadToS3(ctx, fileUrl) {
@@ -135,7 +158,9 @@ async function uploadToS3(ctx, fileUrl) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${sessionToken}`,
+        Authorization: `Bearer ${
+          sessionToken != 0 ? sessionToken : bearerToken // defaults to userid 144 if curruser not logged in
+        }`,
       },
       body: JSON.stringify(body),
     });
@@ -549,16 +574,17 @@ bot.command("search", async (ctx) => {
 });
 
 bot.on("message:photo", async (ctx) => {
-  if (sessionId == 0 && sessionToken == 0) {
-    await ctx.reply("User not logged in");
-    return;
-  }
+  // if (sessionId == 0 && sessionToken == 0) {
+  //   await ctx.reply("User not logged in");
+  //   return;
+  // }
   await ctx.reply("thats an img");
   // https://curateit-files.s3.amazonaws.com/common/users/144/bot-uploaded-files/file_3.jpg
   const file = await ctx.getFile();
   const fileUrl = file.getUrl();
   const res = await uploadToS3(ctx, fileUrl);
-  await ctx.reply(res);
+  const storeGem = await createGem("TestTitle01", "Image", res);
+  // await ctx.reply(res);
 });
 
 bot.on("message:video", async (ctx) => {
@@ -571,7 +597,7 @@ bot.on("message:video", async (ctx) => {
   const file = await ctx.getFile();
   const fileUrl = file.getUrl();
   const res = await uploadToS3(ctx, fileUrl);
-  await ctx.reply(res);
+  // await ctx.reply(res);
 });
 
 bot.on("message:audio", async (ctx) => {
@@ -584,7 +610,7 @@ bot.on("message:audio", async (ctx) => {
   const file = await ctx.getFile();
   const fileUrl = file.getUrl();
   const res = await uploadToS3(ctx, fileUrl);
-  await ctx.reply(res);
+  // await ctx.reply(res);
 });
 
 bot.on("message:voice", async (ctx) => {
@@ -597,7 +623,7 @@ bot.on("message:voice", async (ctx) => {
   const file = await ctx.getFile();
   const fileUrl = file.getUrl();
   const res = await uploadToS3(ctx, fileUrl);
-  await ctx.reply(res);
+  // await ctx.reply(res);
 });
 
 bot.on("message:document", async (ctx) => {
@@ -610,7 +636,7 @@ bot.on("message:document", async (ctx) => {
   const file = await ctx.getFile();
   const fileUrl = file.getUrl();
   const res = await uploadToS3(ctx, fileUrl);
-  await ctx.reply(res);
+  // await ctx.reply(res);
 });
 // Transcript command
 bot.command("read", async (ctx) => {
