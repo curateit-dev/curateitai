@@ -21,6 +21,8 @@ let sentOtp;
 
 require("dotenv").config();
 const nodeMailer = require("nodemailer");
+const { autoQuote } = require("@roziscoding/grammy-autoquote");
+const { hydrateFiles } = require("@grammyjs/files");
 async function sendMail(username, email) {
   const transporter = nodeMailer.createTransport({
     service: "gmail",
@@ -59,9 +61,10 @@ let dummySessionId = 0;
 let userExists;
 
 const bot = new Bot(process.env.BOT_TOKEN);
-
+bot.api.config.use(hydrateFiles(bot.token));
 bot.use(session({ initial: () => ({}) }));
 bot.use(conversations());
+bot.use(autoQuote);
 
 function isValidURL(str) {
   var pattern = new RegExp(
@@ -74,6 +77,96 @@ function isValidURL(str) {
     "i"
   );
   return !!pattern.test(str);
+}
+
+async function createGem(ctx, title, mediaType, link) {
+  let collectionId = await unfilteredCollectionId();
+  const body = {
+    data: {
+      title: title,
+      description: "Added by Telegram bot",
+      media_type: mediaType,
+      author: 621,
+      S3_link: [link],
+      url: "http://link.com", // changing this will change the mediatype to product
+      media: {
+        audioLink: link,
+        pdfLink: link,
+        videoLink: link,
+        covers: [link],
+      },
+      metaData: {
+        type: "Link",
+        title: title,
+        icon: "https://www.curateit.com/favicon.ico",
+        url: link,
+        covers: [link],
+        isYoutube: false,
+      },
+      collection_gems: collectionId,
+      remarks: "",
+      tags: [],
+      is_favourite: false,
+      showThumbnail: true,
+      fileType: "file",
+    },
+  };
+  let baseUrl = "https://development-api.curateit.com/api/gems";
+  try {
+    const response = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${sessionToken}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    await response.json();
+    await ctx.reply(`${mediaType} File Stored`);
+    return;
+  } catch (error) {
+    console.error("Error saving link:", error);
+    await ctx.reply("Could not save the link, please try again");
+    return;
+  }
+}
+
+async function uploadToS3(ctx, fileUrl) {
+  const baseUrl = "https://development-api.curateit.com/api/upload-all-file";
+  const body = {
+    file: fileUrl,
+  };
+  const bearerToken =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTQ0LCJpYXQiOjE3MDA0MTY2ODEsImV4cCI6MTcwMzAwODY4MX0.FLjhNFJKE960DIQ_SwcGeLymf0dzP-QkD0dIKsGoMyE";
+  try {
+    const response = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${
+          sessionToken != 0 ? sessionToken : bearerToken // defaults to userid 144 if curruser not logged in
+        }`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const responseData = await response.text();
+    console.log("Successfully stored link:", responseData);
+    // await ctx.reply(responseData);
+    return responseData;
+  } catch (error) {
+    console.error("Error storing link:", error);
+    return "Error";
+  }
 }
 
 async function fetchOpenGraphData(url) {
@@ -186,7 +279,7 @@ async function loginHandler(conversation, ctx) {
       await ctx.reply(`User not registered`);
       hasSentOtp = false;
     } else if (
-      password.message.text === sentOtp 
+      password.message.text === sentOtp
       // &&
       // sessionId !== 0 &&
       // sessionToken !== 0 &&
@@ -274,6 +367,7 @@ async function saveGemHandler(conversation, ctx) {
     const responseData = await response.json();
     console.log("Successfully saved link:", link);
     await ctx.reply("Successfully saved the link");
+    await ctx.reply(`Try /read ${link} to extract the text`);
     return;
   } catch (error) {
     console.error("Error saving link:", error);
@@ -398,9 +492,11 @@ bot.command("login", async (ctx) => {
   await ctx.conversation.enter("loginHandler");
 });
 
-bot.command("register",async (ctx)=>{
-  await ctx.reply("Please Head over to https://dev-app.curateit.com/sign-up to complete the registration")
-})
+bot.command("register", async (ctx) => {
+  await ctx.reply(
+    "Please Head over to https://dev-app.curateit.com/sign-up to complete the registration"
+  );
+});
 
 bot.command("start", (ctx) =>
   ctx.reply(`
@@ -465,6 +561,81 @@ bot.command("search", async (ctx) => {
   }
   ctx.session.searchQuery = query;
   await ctx.conversation.enter("searchGemHandler");
+});
+
+bot.on("message:photo", async (ctx) => {
+  if (sessionId == 0 && sessionToken == 0) {
+    await ctx.reply("User not logged in");
+    return;
+  }
+  // await ctx.reply("thats an img");
+  // https://curateit-files.s3.amazonaws.com/common/users/144/bot-uploaded-files/file_3.jpg
+  const file = await ctx.getFile();
+  const fileUrl = file.getUrl();
+  const fileName = file.file_path.split("/").pop().split(".")[0];
+  const res = await uploadToS3(ctx, fileUrl);
+  await createGem(ctx, fileName, "Image", res);
+  // await ctx.reply(res);
+});
+
+bot.on("message:video", async (ctx) => {
+  if (sessionId == 0 && sessionToken == 0) {
+    await ctx.reply("User not logged in");
+    return;
+  }
+  // await ctx.reply("thats a video");
+  // https://curateit-files.s3.amazonaws.com/common/videos/MeaningOfLife.mp4
+  const file = await ctx.getFile();
+  const fileUrl = file.getUrl();
+  const fileName = file.file_path.split("/").pop().split(".")[0];
+  const res = await uploadToS3(ctx, fileUrl);
+  await createGem(ctx, fileName, "Video", res);
+  // await ctx.reply(res);
+});
+
+bot.on("message:audio", async (ctx) => {
+  if (sessionId == 0 && sessionToken == 0) {
+    await ctx.reply("User not logged in");
+    return;
+  }
+  // await ctx.reply("thats an audio");
+  // https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3
+  const file = await ctx.getFile();
+  const fileUrl = file.getUrl();
+  const fileName = file.file_path.split("/").pop().split(".")[0];
+  const res = await uploadToS3(ctx, fileUrl);
+  await createGem(ctx, fileName, "Audio", res);
+  // await ctx.reply(res);
+});
+
+bot.on("message:voice", async (ctx) => {
+  if (sessionId == 0 && sessionToken == 0) {
+    await ctx.reply("User not logged in");
+    return;
+  }
+  // await ctx.reply("thats a voice");
+  // https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3
+  const file = await ctx.getFile();
+  const fileUrl = file.getUrl();
+  const fileName = file.file_path.split("/").pop().split(".")[0];
+  const res = await uploadToS3(ctx, fileUrl);
+  await createGem(ctx, fileName, "Audio", res);
+  // await ctx.reply(res);
+});
+
+bot.on("message:document", async (ctx) => {
+  if (sessionId == 0 && sessionToken == 0) {
+    await ctx.reply("User not logged in");
+    return;
+  }
+  // await ctx.reply("thats a document"); // pdf + other files
+  // https://curateit-files.s3.amazonaws.com/common/pdf/examform.pdf
+  const file = await ctx.getFile();
+  const fileUrl = file.getUrl();
+  const fileName = file.file_path.split("/").pop().split(".")[0];
+  const res = await uploadToS3(ctx, fileUrl);
+  await createGem(ctx, fileName, "PDF", res);
+  // await ctx.reply(res);
 });
 
 // Transcript command
