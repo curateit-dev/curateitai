@@ -92,15 +92,10 @@ async function createGem(title, mediaType, link) {
       ],
       url: "http://link.com",
       media: {
-        audioLink:
-          "https://cdn.pixabay.com/download/audio/2022/01/30/audio_874db07cfd.mp3?filename=ambient-relaxing-music-for-you-15969.mp3",
-        pdfLink:
-          "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-        videoLink:
-          "https://curateit-files.s3.amazonaws.com/common/videos/MeaningOfLife.mp4",
-        covers: [
-          "https://curateit-files.s3.amazonaws.com/common/users/144/bot-uploaded-files/file_3.jpg",
-        ],
+        audioLink: link,
+        pdfLink: link,
+        videoLink: link,
+        covers: [link],
       },
       metaData: {
         type: "Link",
@@ -583,7 +578,7 @@ bot.on("message:photo", async (ctx) => {
   const file = await ctx.getFile();
   const fileUrl = file.getUrl();
   const res = await uploadToS3(ctx, fileUrl);
-  const storeGem = await createGem("TestPDF01", "PDF", res);
+  const storeGem = await createGem("TestIMG01", "Image", res);
   // await ctx.reply(res);
 });
 
