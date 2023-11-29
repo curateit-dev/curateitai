@@ -21,6 +21,8 @@ let sentOtp;
 
 require("dotenv").config();
 const nodeMailer = require("nodemailer");
+const { autoQuote } = require("@roziscoding/grammy-autoquote");
+const { hydrateFiles } = require("@grammyjs/files");
 async function sendMail(username, email) {
   const transporter = nodeMailer.createTransport({
     service: "gmail",
@@ -59,9 +61,10 @@ let dummySessionId = 0;
 let userExists;
 
 const bot = new Bot(process.env.BOT_TOKEN);
-
+bot.api.config.use(hydrateFiles(bot.token));
 bot.use(session({ initial: () => ({}) }));
 bot.use(conversations());
+bot.use(autoQuote);
 
 function isValidURL(str) {
   var pattern = new RegExp(
@@ -74,6 +77,37 @@ function isValidURL(str) {
     "i"
   );
   return !!pattern.test(str);
+}
+
+async function postFile(filePath) {
+  const body = {
+    // file: `https://api.telegram.org/file/bot6403660864/${filePath}`,
+    file: "https://api.telegram.org/file/bot6403660864:AAEOQAXGMBIbxkPF_aszEohYkRQwFh43zio/photos/file_6.jpg",
+  };
+
+  const token = sessionToken;
+  console.log("token : ", token);
+
+  const options = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  };
+
+  try {
+    const response = await fetch(
+      "https://development-api.curateit.com/api/upload-all-file",
+      options
+    );
+    // const data = await response.json();
+    console.log("response :", response);
+    // console.log("data : ", data);
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 async function fetchOpenGraphData(url) {
@@ -186,7 +220,7 @@ async function loginHandler(conversation, ctx) {
       await ctx.reply(`User not registered`);
       hasSentOtp = false;
     } else if (
-      password.message.text === sentOtp 
+      password.message.text === sentOtp
       // &&
       // sessionId !== 0 &&
       // sessionToken !== 0 &&
@@ -274,6 +308,7 @@ async function saveGemHandler(conversation, ctx) {
     const responseData = await response.json();
     console.log("Successfully saved link:", link);
     await ctx.reply("Successfully saved the link");
+    await ctx.reply(`Try /read ${link} to extract the text`);
     return;
   } catch (error) {
     console.error("Error saving link:", error);
@@ -398,9 +433,11 @@ bot.command("login", async (ctx) => {
   await ctx.conversation.enter("loginHandler");
 });
 
-bot.command("register",async (ctx)=>{
-  await ctx.reply("Please Head over to https://dev-app.curateit.com/sign-up to complete the registration")
-})
+bot.command("register", async (ctx) => {
+  await ctx.reply(
+    "Please Head over to https://dev-app.curateit.com/sign-up to complete the registration"
+  );
+});
 
 bot.command("start", (ctx) =>
   ctx.reply(`
@@ -467,6 +504,23 @@ bot.command("search", async (ctx) => {
   await ctx.conversation.enter("searchGemHandler");
 });
 
+bot.on("message:photo", async (ctx) => {
+  await ctx.reply("thats an img");
+  const file = await ctx.getFile();
+  await ctx.reply(file.getUrl());
+});
+
+bot.on("message:video", async (ctx) => {
+  await ctx.reply("thats an video");
+  const file = await ctx.getFile();
+  await ctx.reply(file.getUrl());
+});
+
+bot.on("message:audio", async (ctx) => {
+  await ctx.reply("thats an audio");
+  const file = await ctx.getFile();
+  await ctx.reply(file.getUrl());
+});
 // Transcript command
 bot.command("read", async (ctx) => {
   const messageText = ctx.message.text;
