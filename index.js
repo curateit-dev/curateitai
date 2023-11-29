@@ -85,7 +85,7 @@ async function createGem(title, mediaType, link) {
     data: {
       title: title,
       description: "",
-      media_type: "Image",
+      media_type: mediaType,
       author: 621,
       S3_link: [
         "https://curateit-files.s3.amazonaws.com/common/users/144/bot-uploaded-files/file_3.jpg",
@@ -583,7 +583,7 @@ bot.on("message:photo", async (ctx) => {
   const file = await ctx.getFile();
   const fileUrl = file.getUrl();
   const res = await uploadToS3(ctx, fileUrl);
-  const storeGem = await createGem("TestTitle01", "Image", res);
+  const storeGem = await createGem("TestPDF01", "PDF", res);
   // await ctx.reply(res);
 });
 
