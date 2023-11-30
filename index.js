@@ -104,8 +104,8 @@ async function websiteTextHandler(conversation, ctx) {
     console.log("data : ", data.text);
     return;
   } catch (error) {
-    console.error("Error Extracting text : ", error);
-    await ctx.reply("Error Extracting text");
+    console.error("Transcript not Found : ", error);
+    await ctx.reply("Transcript not Found");
     return;
   }
 }
@@ -210,7 +210,7 @@ async function createGem(ctx, title, mediaType, link) {
       fileType: "file",
     },
   };
-  let baseUrl = "https://development-api.curateit.com/api/gems";
+  let baseUrl = `${CURATEIT_API_URL}/api/gems`;
   try {
     const response = await fetch(baseUrl, {
       method: "POST",
@@ -236,7 +236,7 @@ async function createGem(ctx, title, mediaType, link) {
 }
 
 async function uploadToS3(ctx, fileUrl) {
-  const baseUrl = "https://development-api.curateit.com/api/upload-all-file";
+  const baseUrl = `${CURATEIT_API_URL}/api/upload-all-file`;
   const body = {
     file: fileUrl,
   };
