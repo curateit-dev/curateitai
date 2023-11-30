@@ -73,18 +73,97 @@ const startmenu = new Menu("startMenu")
   .text("Search Gem", (ctx) => ctx.reply("Try /search <GEM_TITLE>"))
   .text("Transcribe", (ctx) => ctx.reply("Try /read <YOUR_URL>"));
 
-const readButton = new Menu("readButton").text("Transcribe", (ctx) =>
-  ctx.reply("Try /read <YOUR_URL>")
-);
-
 // Make it interactive
 bot.use(startmenu);
-bot.use(readButton);
 bot.use(registerBtn);
 bot.api.config.use(hydrateFiles(bot.token));
 bot.use(session({ initial: () => ({}) }));
 bot.use(conversations());
 bot.use(autoQuote);
+
+async function websiteTextHandler(conversation, ctx) {
+  // extract text from normal website
+  let link = ctx.session.webUrlToRead;
+  if (!link.startsWith("http://") && !link.startsWith("https://")) {
+    link = "https://" + link;
+  }
+  delete ctx.session.webUrlToRead;
+  const url = `${
+    process.env.CURATEIT_AI_API
+  }/extract_article/${encodeURIComponent(link)}/0/4095`;
+
+  try {
+    console.log("url : ", url);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    console.log("data : ", data);
+    await ctx.reply(data.text);
+    console.log("data : ", data.text);
+    return;
+  } catch (error) {
+    console.error("Error Extracting text : ", error);
+    await ctx.reply("Error Extracting text");
+    return;
+  }
+}
+
+async function youtubeTextHandler(conversation, ctx) {
+  // extract text from youtube transcript
+  let link = ctx.session.ytUrlToRead;
+  if (!link.startsWith("http://") && !link.startsWith("https://")) {
+    link = "https://" + link;
+  }
+  delete ctx.session.ytUrlToRead;
+  const videoId = link.match(/v=([a-zA-Z0-9_-]+)/)?.[1];
+
+  if (!videoId) {
+    await ctx.reply("Invalid YouTube url");
+    return;
+  }
+
+  const url = `${process.env.CURATEIT_AI_API}/transcript/${videoId}/0/4095`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    await ctx.reply(data.transcription);
+    return;
+  } catch (error) {
+    console.error("Error fetching transcription:", error);
+    await ctx.reply("Error fetching transcription");
+    return;
+  }
+}
+
+bot.use(createConversation(websiteTextHandler));
+bot.use(createConversation(youtubeTextHandler));
+
+const readButton = new Menu("readButton").text("Transcribe", async (ctx) => {
+  ctx.reply("Please be patient we are fetching the content of the url");
+  try {
+    let url = ctx.session.saveGemLink;
+    console.log("url : ", url);
+    url = url.trim();
+    ctx.session.webUrlToRead = url;
+    ctx.session.ytUrlToRead = url;
+    if (youtubeRegex.test(url)) {
+      await ctx.conversation.enter("youtubeTextHandler");
+    } else {
+      await ctx.conversation.enter("websiteTextHandler");
+    }
+  } catch (error) {
+    console.log("Error : ", error);
+    await ctx.reply("Could not Transcribe");
+  }
+  delete ctx.session.saveGemLink;
+});
+bot.use(readButton);
 
 function isValidURL(str) {
   var pattern = new RegExp(
@@ -376,6 +455,8 @@ async function saveGemHandler(conversation, ctx) {
 
     const responseData = await response.json();
     console.log("Successfully saved link:", link);
+    ctx.session.saveGemLink = link;
+    console.log("ctx.session.saveGemLink : ", ctx.session.saveGemLink);
     await ctx.reply("Successfully saved the link", {
       reply_markup: readButton,
     });
@@ -432,68 +513,6 @@ async function searchGemHandler(conversation, ctx) {
   return;
 }
 
-async function websiteTextHandler(conversation, ctx) {
-  // extract text from normal website
-  let link = ctx.session.webUrlToRead;
-  if (!link.startsWith("http://") && !link.startsWith("https://")) {
-    link = "https://" + link;
-  }
-  delete ctx.session.webUrlToRead;
-  const url = `${
-    process.env.CURATEIT_AI_API
-  }/extract_article/${encodeURIComponent(link)}/0/4095`;
-
-  try {
-    console.log("url : ", url);
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    console.log("data : ", data);
-    await ctx.reply(data.text);
-    console.log("data : ", data.text);
-    return;
-  } catch (error) {
-    console.error("Error Extracting text : ", error);
-    await ctx.reply("Error Extracting text");
-    return;
-  }
-}
-
-async function youtubeTextHandler(conversation, ctx) {
-  // extract text from youtube transcript
-  let link = ctx.session.ytUrlToRead;
-  if (!link.startsWith("http://") && !link.startsWith("https://")) {
-    link = "https://" + link;
-  }
-  delete ctx.session.ytUrlToRead;
-  const videoId = link.match(/v=([a-zA-Z0-9_-]+)/)?.[1];
-
-  if (!videoId) {
-    await ctx.reply("Invalid YouTube url");
-    return;
-  }
-
-  const url = `${process.env.CURATEIT_AI_API}/transcript/${videoId}/0/4095`;
-
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    await ctx.reply(data.transcription);
-    return;
-  } catch (error) {
-    console.error("Error fetching transcription:", error);
-    await ctx.reply("Error fetching transcription");
-    return;
-  }
-}
-
-bot.use(createConversation(websiteTextHandler));
-bot.use(createConversation(youtubeTextHandler));
 bot.use(createConversation(searchGemHandler));
 bot.use(createConversation(saveGemHandler));
 bot.use(createConversation(loginHandler));
