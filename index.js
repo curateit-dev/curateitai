@@ -210,7 +210,7 @@ async function createGem(ctx, title, mediaType, link) {
       fileType: "file",
     },
   };
-  let baseUrl = `${CURATEIT_API_URL}/api/gems`;
+  let baseUrl = `${process.env.CURATEIT_API_URL}/api/gems`;
   try {
     const response = await fetch(baseUrl, {
       method: "POST",
@@ -236,7 +236,7 @@ async function createGem(ctx, title, mediaType, link) {
 }
 
 async function uploadToS3(ctx, fileUrl) {
-  const baseUrl = `${CURATEIT_API_URL}/api/upload-all-file`;
+  const baseUrl = `${process.env.CURATEIT_API_URL}/api/upload-all-file`;
   const body = {
     file: fileUrl,
   };
