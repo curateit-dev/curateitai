@@ -62,6 +62,9 @@ let dummySessionId = 0;
 let userExists;
 
 const bot = new Bot(process.env.BOT_TOKEN);
+const registerBtn = new Menu("registerBtn")
+  .url("Register", "https://dev-app.curateit.com/sign-up")
+  .row();
 
 const startmenu = new Menu("startMenu")
   .text("Save Gem", (ctx) => ctx.reply("Try /save <YOUR_URL>"))
@@ -76,6 +79,7 @@ const readButton = new Menu("readButton").text("Transcribe", (ctx) =>
 // Make it interactive
 bot.use(startmenu);
 bot.use(readButton);
+bot.use(registerBtn);
 bot.api.config.use(hydrateFiles(bot.token));
 bot.use(session({ initial: () => ({}) }));
 bot.use(conversations());
@@ -251,7 +255,9 @@ async function getUserDetails(ctx, emailId) {
     } else {
       userExists = false;
       console.log("user doesnt exists");
-      ctx.reply("Email not registered, please use /register");
+      ctx.reply("Email not registered", {
+        reply_markup: registerBtn,
+      });
     }
     // await ctx.reply("Login Successful");
     return;
