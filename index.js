@@ -504,6 +504,7 @@ bot.use(createConversation(saveGemHandler));
 bot.use(createConversation(loginHandler));
 
 bot.command("login", async (ctx) => {
+  hasSentOtp = false;
   await ctx.conversation.enter("loginHandler");
 });
 
