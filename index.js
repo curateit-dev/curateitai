@@ -2,6 +2,7 @@ const { Bot, webhookCallback, Context, session } = require("grammy");
 const express = require("express");
 const axios = require("axios");
 const OpenAI = require("openai");
+const { parser } = require("html-metadata-parser");
 const jsdom = require("jsdom");
 const { JSDOM } = jsdom;
 const {
@@ -189,26 +190,14 @@ async function uploadToS3(ctx, fileUrl) {
 }
 
 async function fetchOpenGraphData(url) {
-  const response = await fetch(url);
-  const html = await response.text();
-
-  const dom = new JSDOM(html);
-  const doc = dom.window.document;
-
-  const ogData = {};
-
-  const metaTags = doc.querySelectorAll('meta[property^="og:"]');
-  metaTags.forEach((tag) => {
-    ogData[tag.getAttribute("property")] = tag.getAttribute("content");
-  });
-  console.log("ogData from fetchogdata : ", ogData);
+  var result = await parser(url);
+  const ogData = result.og;
   return ogData;
 }
 
 async function unfilteredCollectionId() {
   const authToken = sessionToken;
   console.log("authtoken from unfilteredCollectionId ", authToken);
-
   const url = `${process.env.CURATEIT_API_URL}/api/get-user-collections`;
   const options = {
     method: "GET",

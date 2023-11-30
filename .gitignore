@@ -19,6 +19,7 @@ pids
 lib-cov
 tmp.html
 tmp.js
+tmp2.js
 tmp.json
 
 # Coverage directory used by tools like istanbul
